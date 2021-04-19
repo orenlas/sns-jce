@@ -1,9 +1,10 @@
 #!flask/bin/python
 import json
-from flask import Flask, Response
+from flask import Flask, Response, request
 from helloworld.flaskrun import flaskrun
 import requests
 from flask_cors import CORS
+import boto3
 
 
 application = Flask(__name__)
@@ -34,6 +35,21 @@ def get_generic_data():
     return Response(json.dumps(generic_data), mimetype='application/json', status=200)
 
 
+# get example for multiplication
+# test get  
+# curl -i http://"localhost:5000/v1/multiply?first_num=12.1&second_num=12"
+
+@application.route('/v1/multiply', methods=['GET', 'POST'])
+def get_mult_res():
+    
+    first_num = request.args.get('first_num')
+    second_num = request.args.get('second_num')
+    res = float(first_num) * float(second_num) 
+    return Response(json.dumps({'multiplication result': res}), mimetype='application/json', status=200)
+
+
+
+
 # mock data
 currency_rate = {
     'usd' : 3.3,
@@ -56,6 +72,39 @@ generic_data = [
     }
    ]
 
+
+@application.route('/get_forms', methods=['GET'])
+def get_frm():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('form')
+    # replace table scan
+    resp = table.scan()
+    print(str(resp))
+    return Response(json.dumps(str(resp['Items'])), mimetype='application/json', status=200)
+
+
+# curl -i -X POST -d'{"form_title":"form title1", "form_body":"where is it?"}' -H "Content-Type: application/json" http://localhost:5000/set_form/frm4
+@application.route('/set_form/<frm_id>', methods=['POST'])
+def set_doc(frm_id):
+    
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('form')
+    # get post data  
+    data = request.data
+    # convert the json to dictionary
+    data_dict = json.loads(data)
+    # retreive the parameters
+    form_body = data_dict.get('form_body','default')
+    form_title = data_dict.get('form_title','defualt')
+
+    item={
+    'form_area': frm_id,
+    'form_body': form_body,
+    'form_title': form_title 
+     }
+    table.put_item(Item=item)
+    
+    return Response(json.dumps(item), mimetype='application/json', status=200)
 
 if __name__ == '__main__':
     flaskrun(application)
