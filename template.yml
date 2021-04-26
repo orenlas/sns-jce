@@ -31,6 +31,21 @@ Parameters:
     Description: The name for a project pipeline stage, such as Staging or Prod, for which resources are provisioned and deployed.
     Default: ''
 Resources:
+
+DBRole:
+  Description: Sample db role
+  Type: AWS::IAM::Role
+  Properties:
+    AssumeRolePolicyDocument:
+      Statement:
+      - Effect: Allow
+        Principal:
+          Service: [dynamodb.amazonaws.com]
+        Action: sts:AssumeRole
+    ManagedPolicyArns:
+      -  arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+    PermissionsBoundary: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CodeStar_${ProjectId}_PermissionsBoundary'
+    
   WebApp01:
     Description: The installation and configuration commands this project will use to create instances that support this sample web application.
     Properties:

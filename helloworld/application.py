@@ -76,19 +76,19 @@ generic_data = [
 @application.route('/get_forms', methods=['GET'])
 def get_frm():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('form')
+    table = dynamodb.Table('forms')
     # replace table scan
     resp = table.scan()
     print(str(resp))
     return Response(json.dumps(str(resp['Items'])), mimetype='application/json', status=200)
 
 
-# curl -i -X POST -d'{"form_title":"form title1", "form_body":"where is it?"}' -H "Content-Type: application/json" http://localhost:5000/set_form/frm4
+# curl -i -X POST -d'{"form_title":"form title1", "form_body":"where is it?", "form_type":"finance"}' -H "Content-Type: application/json" http://localhost:5000/set_form/frm4
 @application.route('/set_form/<frm_id>', methods=['POST'])
 def set_doc(frm_id):
     
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('form')
+    table = dynamodb.Table('forms')
     # get post data  
     data = request.data
     # convert the json to dictionary
@@ -96,11 +96,13 @@ def set_doc(frm_id):
     # retreive the parameters
     form_body = data_dict.get('form_body','default')
     form_title = data_dict.get('form_title','defualt')
+    form_type = data_dict.get('form_type', 'default')
 
     item={
-    'form_area': frm_id,
+    'form_id': frm_id,
     'form_body': form_body,
-    'form_title': form_title 
+    'form_title': form_title, 
+    'form_type': form_type 
      }
     table.put_item(Item=item)
     
