@@ -107,6 +107,68 @@ def set_doc(frm_id):
     table.put_item(Item=item)
     
     return Response(json.dumps(item), mimetype='application/json', status=200)
+    
+    
+@application.route('/analyze/<bucket>/<image>', methods=['GET'])
+def analyze(bucket='my-upload-bucket-01', image='person.jpg'):
+    return detect_labels(bucket, image)
+
+# curl localhost:5000/analyze/my-upload-bucket-01/person.jpg
+def detect_labels(bucket, key, max_labels=10, min_confidence=50, region="us-east-1"):
+    rekognition = boto3.client("rekognition", region)
+    s3 = boto3.resource('s3', region_name = 'us-east-1')
+
+    image = s3.Object(bucket, key) # Get an Image from S3
+    img_data = image.get()['Body'].read() # Read the image
+
+    response = rekognition.detect_labels(
+        Image={
+            'Bytes': img_data
+        },
+        MaxLabels=max_labels,
+		MinConfidence=min_confidence,
+    )
+    return json.dumps(response['Labels'])
+
+    '''
+	response = rekognition.detect_labels(
+		Image={
+			"S3Object": {
+				"Bucket": bucket,
+				"Name": key,
+			}
+		},
+		MaxLabels=max_labels,
+		MinConfidence=min_confidence,
+	)
+	'''
+
+@application.route('/comp_face/<source_image>/<target_image>', methods=['GET'])
+def compare_face(source_image, target_image):
+    # change region and bucket accordingly
+    region = 'us-east-1'
+    bucket_name = 'my-upload-bucket-01'
+	
+    rekognition = boto3.client("rekognition", region)
+    response = rekognition.compare_faces(
+        SourceImage={
+    		"S3Object": {
+    			"Bucket": bucket_name,
+    			"Name":source_image,
+    		}
+    	},
+    	TargetImage={
+    		"S3Object": {
+    			"Bucket": bucket_name,
+    			"Name": target_image,
+    		}
+    	},
+		# play with the minimum level of similarity
+        SimilarityThreshold=50,
+    )
+    # return 0 if below similarity threshold
+    return json.dumps(response['FaceMatches'] if response['FaceMatches'] != [] else [{"Similarity": 0.0}])
+
 
 if __name__ == '__main__':
     flaskrun(application)
