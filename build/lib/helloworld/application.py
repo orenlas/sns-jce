@@ -1,60 +1,51 @@
-#!flask/bin/python
-import json
-from flask import Flask, Response
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Purpose
+
+Shows how to use the AWS SDK for Python (Boto3) with Amazon Simple Notification
+Service (Amazon SNS) to create notification topics, add subscribers, and publish
+messages.
+"""
+
+from flask import Flask, Response, request
 from helloworld.flaskrun import flaskrun
 import requests
 from flask_cors import CORS
-
+import json
+import logging
+import time
+import boto3
+from botocore.exceptions import ClientError
 application = Flask(__name__)
 CORS(application, resources={r"/*": {"origins": "*"}})
+logger = logging.getLogger(__name__)
 
-@application.route('/', methods=['GET'])
-def get():
-    return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
+@application.route('/sms/<phone_number>', methods=['POST'])
+def publish_text_message(phone_number):
+    """
+    Publishes a text message directly to a phone number without need for a
+    subscription.
 
-@application.route('/', methods=['POST'])
-def post():
-    return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
-
-
-@application.route('/calc/bit', methods=['GET'])
-def post_currency_bit():
-    return Response(json.dumps(get_bitcoin_index()), mimetype='application/json', status=200)
-
-
-def get_bitcoin_index():
-    url = 'https://api.coindesk.com/v1/bpi/currentprice.json'
-    response = requests.get(url).json()['bpi']['USD']
-    return response
-
-# return generic data
-@application.route('/get_generic', methods=['GET'])
-def get_generic_data():
-    return Response(json.dumps(generic_data), mimetype='application/json', status=200)
-
-
-# mock data
-currency_rate = {
-    'usd' : 3.3,
-    'pound' : 4.5,
-    'euro' : 4.8
-}
-
-#generic data
-generic_data = [
- 
-    {
-    "id":1,
-    "title": "wtf",
-    "body": "good will"
-    },
-    {
-    "id":2,
-    "title": "wtf2",
-    "body": "good will2"
-    }
-   ]
-
+    :param phone_number: The phone number that receives the message.
+    :param message: The message to send.
+    :return: The ID of the message.
+    
+    """
+    
+       # get post data  
+    data = request.data
+    # convert the json to dictionary
+    data_dict = json.loads(data)
+    # retreive the parameters
+    message = data_dict.get('message','default')
+    client = boto3.client('sns', region_name='us-east-1')
+    response = client.publish(
+        PhoneNumber=phone_number, Message=message)
+    message_id = response['MessageId']
+    return message_id
 
 if __name__ == '__main__':
     flaskrun(application)
+    
