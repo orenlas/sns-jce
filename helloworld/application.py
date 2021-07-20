@@ -21,9 +21,7 @@ from botocore.exceptions import ClientError
 application = Flask(__name__)
 CORS(application, resources={r"/*": {"origins": "*"}})
 
-@application.route('/', methods=['GET'])
-def get():
-    return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
+
     
 @application.route('/sms/<phone_number>', methods=['POST'])
 def publish_text_message(phone_number):
